@@ -72,9 +72,22 @@ export async function buildVariants(input, options = {}, onProgress) {
   const hasBase = baseKeywords.length > 0;
   const variants = [];
 
+  // 国内案件は「日本語キーワード ＋ 自国アーティスト/AI除外」が一番効く → 最優先
+  variants.push(
+    makeVariant('jp', '日本語そのまま（おすすめ）', 'いつも通りの日本語キーワードに、自国アーティスト・AI除外フィルタを付与。国内案件はこれが最強。', text, {
+      ...baseFilters,
+    }),
+  );
+  variants.push(
+    makeVariant('jp-wide', '日本語 ＋ 横長', '上に横長フィルタを追加（Web・バナー向け）。', text, {
+      ...baseFilters,
+      orientation: orientation || 'horizontal',
+    }),
+  );
+
   if (hasBase) {
     variants.push(
-      makeVariant('direct', '直球', '入力に忠実な訳。まず全体の母数を見る用。', toKeywordString(baseKeywords), {
+      makeVariant('direct', '英語で広げる', '英訳キーワード。日本語で母数が薄い時の広げ用。', toKeywordString(baseKeywords), {
         ...baseFilters,
         orientation,
       }),
@@ -106,10 +119,6 @@ export async function buildVariants(input, options = {}, onProgress) {
       }),
     );
   }
-
-  variants.push(
-    makeVariant('jp', '日本語キーワード版', '英語版で薄い時に。日本語タグの素材を直接拾う。', text, { ...baseFilters }),
-  );
 
   return {
     engine,
