@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ストック検索アシスト｜日本語で Adobe Stock をねらい撃ち</title>
+    <meta
+      name="description"
+      content="探したい画像を日本語で書くだけ。最適化した Adobe Stock の検索リンクを複数パターンで生成します。"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="styles/tokens.css" />
+    <link rel="stylesheet" href="styles/app.css" />
+  </head>
+  <body>
+    <div class="bg-word" aria-hidden="true">STOCK&nbsp;SEARCH</div>
+
+    <main class="container">
+      <header class="masthead">
+        <p class="index-label">Adobe Stock · 検索アシスト</p>
+        <h1 class="masthead__title">日本語で、ねらい撃ち検索。</h1>
+        <p class="masthead__lead">
+          探したい画像を日本語で書くだけ。英語キーワード＋フィルタに最適化した Adobe Stock
+          の検索リンクを、狙い別に複数パターンで出します。
+        </p>
+      </header>
+
+      <section class="panel" aria-labelledby="input-heading">
+        <h2 id="input-heading" class="visually-hidden">検索入力</h2>
+
+        <form id="search-form" class="search-form" autocomplete="off">
+          <label class="field">
+            <span class="field__label">どんな画像が欲しい？（日本語でOK）</span>
+            <textarea
+              id="query-input"
+              class="field__textarea"
+              rows="3"
+              placeholder="例：明るいオフィスで複数人の若い社員がカジュアルに打ち合わせ、明るい雰囲気"
+            ></textarea>
+          </label>
+
+          <div class="options">
+            <label class="select">
+              <span class="select__label">種別</span>
+              <select id="opt-content-type">
+                <option value="">自動</option>
+                <option value="photo">写真</option>
+                <option value="illustration">イラスト</option>
+                <option value="vector">ベクター</option>
+                <option value="video">動画</option>
+                <option value="template">テンプレート</option>
+                <option value="3d">3D</option>
+              </select>
+            </label>
+
+            <label class="select">
+              <span class="select__label">向き</span>
+              <select id="opt-orientation">
+                <option value="">自動</option>
+                <option value="horizontal">横長</option>
+                <option value="vertical">縦</option>
+                <option value="square">正方形</option>
+              </select>
+            </label>
+
+            <label class="select">
+              <span class="select__label">被写体</span>
+              <select id="opt-subject">
+                <option value="jp" selected>日本人</option>
+                <option value="none">指定なし</option>
+                <option value="asian">アジア系</option>
+                <option value="western">欧米系</option>
+              </select>
+            </label>
+
+            <div class="toggles">
+              <label class="chip-toggle"><input type="checkbox" id="opt-copyspace" /> 余白あり</label>
+              <label class="chip-toggle"><input type="checkbox" id="opt-candid" /> 自然な雰囲気</label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" id="generate-btn" class="btn btn--primary">検索リンクを作る</button>
+            <span id="engine-badge" class="engine-badge" hidden></span>
+          </div>
+        </form>
+
+        <div id="history" class="history" hidden>
+          <span class="history__label">最近の検索</span>
+          <div id="history-chips" class="history__chips"></div>
+          <button type="button" id="history-clear" class="btn-text">消去</button>
+        </div>
+      </section>
+
+      <section id="results" class="results" aria-live="polite"></section>
+
+      <footer class="site-footer">
+        <p>
+          生成されるのは普通の Adobe Stock 検索リンクです。クリックすると新しいタブで開きます（チーム版にログインしていれば、そのまま閲覧・ライセンスできます）。
+        </p>
+        <p class="site-footer__note">
+          翻訳は <strong>Chrome / Edge の内蔵AI</strong>（対応時）を使い、非対応なら内蔵辞書にフォールバックします。入力テキストは端末内で処理され、サーバーには送信されません。
+        </p>
+      </footer>
+    </main>
+
+    <script type="module" src="src/app.js"></script>
+  </body>
+</html>
