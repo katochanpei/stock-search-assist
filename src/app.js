@@ -17,6 +17,7 @@ const optOrientation = document.getElementById('opt-orientation');
 const optSubject = document.getElementById('opt-subject');
 const optCopySpace = document.getElementById('opt-copyspace');
 const optCandid = document.getElementById('opt-candid');
+const optExcludeAI = document.getElementById('opt-exclude-ai');
 
 const ENGINE_LABEL = {
   ai: '内蔵AIで翻訳',
@@ -41,6 +42,7 @@ function readOptions() {
     subject: optSubject.value || 'jp',
     copySpace: optCopySpace.checked || undefined,
     candid: optCandid.checked || undefined,
+    excludeAI: optExcludeAI.checked,
   };
 }
 

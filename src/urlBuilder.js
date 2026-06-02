@@ -36,7 +36,7 @@ export function buildSearchUrl(keywords, options = {}) {
     throw new Error('buildSearchUrl: keywords が空です');
   }
 
-  const { contentType, orientation, order, safeSearch = true } = options;
+  const { contentType, orientation, order, localArtists, excludeAI, safeSearch = true } = options;
   const params = new URLSearchParams();
   params.set('k', trimmed);
 
@@ -48,6 +48,15 @@ export function buildSearchUrl(keywords, options = {}) {
 
   if (orientation && ORIENTATION_VALUES.has(orientation)) {
     params.set('filters[orientation]', orientation);
+  }
+
+  if (localArtists) {
+    // 自国（アカウントの国＝日本）のアーティストに限定 → 日本人モデル中心になる
+    params.set('filters[local_artists]', 'only');
+  }
+
+  if (excludeAI) {
+    params.set('filters[gentech]', 'exclude'); // AI生成画像を除外
   }
 
   if (order && ORDER_VALUES.has(order)) {
