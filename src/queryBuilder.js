@@ -26,7 +26,11 @@ import { distillJaKeywords } from './segmenter.js';
 import { probe as nanoProbe, distill as nanoDistill } from './nano.js';
 import { translateKeywords } from './translator.js';
 
-const MAX_EN_KEYWORDS = 5;
+// 実測（2026-08）: 琥珀糖系の入力で ja 5語＝0件 / 3語＝50件 / 2語＝52件。
+// キーワードは多いほど絞られて0件に直行するため、主力カードは3語に留める。
+const JA_MAIN_KEYWORDS = 3;
+const JA_BROAD_KEYWORDS = 2;
+const MAX_EN_KEYWORDS = 4;
 
 const CONTENT_TYPE_LABEL = {
   photo: '写真',
@@ -107,7 +111,8 @@ export async function buildVariants(input, options = {}, onProgress) {
   const { jaKeywords, enKeywords, engine } = await distillKeywords(text, onProgress);
 
   // 蒸留に失敗したら原文で検索（従来挙動）
-  const jaQuery = jaKeywords.length > 0 ? jaKeywords.join(' ') : text;
+  const jaQueryMain = jaKeywords.length > 0 ? jaKeywords.slice(0, JA_MAIN_KEYWORDS).join(' ') : text;
+  const jaQueryFull = jaKeywords.join(' ');
   // 辞書モードで1語だけ（例: "background"）の英語カードは誤誘導なので出さない
   const hasEn = engine === 'dict' ? enKeywords.length >= 2 : enKeywords.length > 0;
   const variants = [];
@@ -117,27 +122,40 @@ export async function buildVariants(input, options = {}, onProgress) {
     makeVariant(
       'jp',
       '日本語キーワード（おすすめ）',
-      '入力文から検索用キーワードだけを抽出。国内案件はこれが最強。',
-      jaQuery,
+      '入力文から核のキーワード3語を抽出。国内案件はこれが最強。',
+      jaQueryMain,
       { ...baseFilters },
     ),
   );
   variants.push(
-    makeVariant('jp-wide', '日本語 ＋ 横長', '上に横長フィルタを追加（Web・バナー向け）。', jaQuery, {
+    makeVariant('jp-wide', '日本語 ＋ 横長', '上に横長フィルタを追加（Web・バナー向け）。', jaQueryMain, {
       ...baseFilters,
       orientation: orientation || 'horizontal',
     }),
   );
 
   // 0件保険: キーワードを2語に絞り、自国アーティストも外して母数を最大化
-  if (jaKeywords.length > 2 || localArtists) {
+  if (jaKeywords.length > JA_BROAD_KEYWORDS || localArtists) {
     variants.push(
       makeVariant(
         'jp-broad',
         '日本語 広め（ヒットが少ない時）',
         'キーワードを核の2語に絞り、アーティスト限定も外して母数を確保。',
-        jaKeywords.slice(0, 2).join(' ') || jaQuery,
+        jaKeywords.slice(0, JA_BROAD_KEYWORDS).join(' ') || jaQueryMain,
         { contentType, excludeAI },
+      ),
+    );
+  }
+
+  // 逆方向の保険: ヒットが多すぎる時用に全キーワードで絞るカード
+  if (jaKeywords.length > JA_MAIN_KEYWORDS) {
+    variants.push(
+      makeVariant(
+        'jp-full',
+        '日本語 絞り込み（全キーワード）',
+        `抽出した${jaKeywords.length}語すべてで検索。ヒットが多すぎる時の絞り込み用。`,
+        jaQueryFull,
+        { ...baseFilters },
       ),
     );
   }
