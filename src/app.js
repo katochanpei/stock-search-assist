@@ -1,6 +1,7 @@
 // UI 配線。フォーム送信 → queryBuilder → 結果描画 → 履歴保存。
 import { buildVariants } from './queryBuilder.js';
-import { probe } from './translator.js';
+import { probe as probeTranslator } from './translator.js';
+import { probe as probeNano, ensureReady as ensureNanoReady } from './nano.js';
 import { getHistory, addHistory, clearHistory } from './history.js';
 
 const form = document.getElementById('search-form');
@@ -20,10 +21,14 @@ const optCandid = document.getElementById('opt-candid');
 const optExcludeAI = document.getElementById('opt-exclude-ai');
 
 const ENGINE_LABEL = {
-  ai: '内蔵AIで翻訳',
+  nano: '高精度AI（Gemini Nano）で変換',
+  translator: '内蔵AI翻訳＋キーワード抽出で変換',
   dict: '辞書モードで変換',
-  none: '辞書モード（英語キーワード未抽出）',
+  none: '日本語キーワードのみ（英語未抽出）',
 };
+
+// CSSの色分けは既存の data-engine='ai' / 'dict' を流用する
+const ENGINE_BADGE_KIND = { nano: 'ai', translator: 'ai', dict: 'dict', none: 'dict' };
 
 function escapeHtml(value) {
   return String(value)
@@ -57,7 +62,7 @@ function setEngineBadge(engine, customText) {
     engineBadge.textContent = customText;
     return;
   }
-  engineBadge.dataset.engine = engine;
+  engineBadge.dataset.engine = ENGINE_BADGE_KIND[engine] ?? 'dict';
   engineBadge.textContent = ENGINE_LABEL[engine] ?? '';
 }
 
@@ -78,7 +83,7 @@ function renderVariants(result) {
   const blocks = [];
   if (result.engine === 'none' || result.baseKeywords.length === 0) {
     blocks.push(
-      '<div class="notice">英語キーワードを自動抽出できへんかったから、<strong>日本語キーワード版</strong>だけ出してるで。単語を足すか、Chrome / Edge（内蔵AI対応）で開くと精度が上がるわ。</div>',
+      '<div class="notice">英語キーワードを自動抽出できなかったため、<strong>日本語キーワード版</strong>のみ表示しています。Chrome / Edge（内蔵AI対応）で開くと英語版も生成されます。</div>',
     );
   }
   for (const variant of result.variants) {
@@ -176,18 +181,51 @@ function bindEvents() {
   });
 }
 
-async function init() {
-  bindEvents();
-  renderHistory(getHistory());
+const nanoPrepBtn = document.getElementById('nano-prep');
 
-  const availability = await probe();
-  if (availability === 'available') {
-    setEngineBadge(null, '内蔵AI 翻訳：利用可');
-  } else if (availability === 'downloadable') {
-    setEngineBadge(null, '内蔵AI 翻訳：初回のみモデルDLあり');
+async function refreshEngineBadge() {
+  const [nano, translator] = await Promise.all([probeNano(), probeTranslator()]);
+
+  if (nano === 'available') {
+    setEngineBadge(null, '高精度AI（Gemini Nano）：利用可');
+    if (nanoPrepBtn) nanoPrepBtn.hidden = true;
+    return;
+  }
+  if (nano === 'downloadable' && nanoPrepBtn) {
+    nanoPrepBtn.hidden = false; // 明示ボタンでのみ巨大DLを開始する
+  }
+  if (translator === 'available') {
+    setEngineBadge(null, '内蔵AI翻訳：利用可');
+  } else if (translator === 'downloadable') {
+    setEngineBadge(null, '内蔵AI翻訳：初回のみモデルDLあり');
+  } else if (nano === 'downloadable') {
+    setEngineBadge(null, '高精度AI：モデル準備で利用可（右のボタン）');
   } else {
     setEngineBadge(null, '辞書モードで動作（内蔵AI非対応の環境）');
   }
+}
+
+async function onNanoPrep() {
+  if (!nanoPrepBtn) return;
+  nanoPrepBtn.disabled = true;
+  nanoPrepBtn.textContent = '高精度AIを準備中…';
+  try {
+    await ensureNanoReady((percent) => {
+      setEngineBadge(null, `高精度AIモデルDL中… ${percent}%`);
+    });
+    nanoPrepBtn.hidden = true;
+  } catch {
+    nanoPrepBtn.textContent = '高精度AIの準備に失敗（再試行）';
+    nanoPrepBtn.disabled = false;
+  }
+  await refreshEngineBadge();
+}
+
+async function init() {
+  bindEvents();
+  if (nanoPrepBtn) nanoPrepBtn.addEventListener('click', onNanoPrep);
+  renderHistory(getHistory());
+  await refreshEngineBadge();
 }
 
 init();

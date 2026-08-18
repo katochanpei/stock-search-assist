@@ -82,6 +82,9 @@
           <div class="form-actions">
             <button type="submit" id="generate-btn" class="btn btn--primary">検索リンクを作る</button>
             <span id="engine-badge" class="engine-badge" hidden></span>
+            <button type="button" id="nano-prep" class="btn-text" hidden>
+              高精度AIを準備（初回のみモデルDL）
+            </button>
           </div>
         </form>
 
@@ -99,7 +102,7 @@
           生成されるのは普通の Adobe Stock 検索リンクです。クリックすると新しいタブで開きます（チーム版にログインしていれば、そのまま閲覧・ライセンスできます）。
         </p>
         <p class="site-footer__note">
-          翻訳は <strong>Chrome / Edge の内蔵AI</strong>（対応時）を使い、非対応なら内蔵辞書にフォールバックします。入力テキストは端末内で処理され、サーバーには送信されません。
+          入力文は <strong>Chrome / Edge の内蔵AI</strong>（対応時）で「検索に強いキーワード」に自動変換します。非対応環境では内蔵辞書にフォールバック。入力テキストは端末内で処理され、サーバーには送信されません。
         </p>
       </footer>
     </main>

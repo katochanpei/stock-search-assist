@@ -8,7 +8,11 @@
 const SOURCE = 'ja';
 const TARGET = 'en';
 const PROBE_TIMEOUT_MS = 2500;
-const TRANSLATE_TIMEOUT_MS = 7000;
+const TRANSLATE_TIMEOUT_MS = 10000;
+// モデルが未DL（downloadable）の場合、7秒では確実にDLが終わらず
+// 「辞書モードに永久固定」される既知バグがあった。DL時は長めに待つ。
+const CREATE_TIMEOUT_READY_MS = 10000;
+const CREATE_TIMEOUT_DOWNLOAD_MS = 180000;
 
 let probePromise;
 let translatorPromise = null;
@@ -78,9 +82,14 @@ export async function translateJaToEn(text, onProgress) {
   const status = await probe();
   if (status !== 'available' && status !== 'downloadable') return null;
 
-  const translator = await withTimeout(getTranslator(onProgress), TRANSLATE_TIMEOUT_MS, null);
+  const createTimeout = status === 'downloadable' ? CREATE_TIMEOUT_DOWNLOAD_MS : CREATE_TIMEOUT_READY_MS;
+  const translator = await withTimeout(getTranslator(onProgress), createTimeout, null);
   if (!translator) {
-    probePromise = Promise.resolve('unavailable'); // 応答しないので以後は辞書に固定
+    // DL済みなのに応答しない環境（Electron等）だけ以後は辞書に固定する。
+    // DL中のタイムアウトは「まだ終わってない」だけなので固定しない（次回再試行）。
+    if (status === 'available') {
+      probePromise = Promise.resolve('unavailable');
+    }
     return null;
   }
 
@@ -90,4 +99,23 @@ export async function translateJaToEn(text, onProgress) {
     return null;
   }
   return output.trim() || null;
+}
+
+/**
+ * キーワード配列を英語フレーズ配列に翻訳する。
+ * 文まるごとの直訳（"photographed ... sense ..." のような劣化）を避けるため、
+ * 蒸留済みキーワードを「、」区切りで渡し、訳文を区切りで戻す。
+ * @param {string[]} jaKeywords
+ * @param {(percent:number)=>void} [onProgress]
+ * @returns {Promise<string[]|null>} 失敗時 null（呼び出し側フォールバック）
+ */
+export async function translateKeywords(jaKeywords, onProgress) {
+  if (!Array.isArray(jaKeywords) || jaKeywords.length === 0) return null;
+  const output = await translateJaToEn(jaKeywords.join('、'), onProgress);
+  if (!output) return null;
+  const phrases = output
+    .split(/[,、;・\n]+/)
+    .map((phrase) => phrase.trim().toLowerCase().replace(/[.!?"'`]+$/g, ''))
+    .filter(Boolean);
+  return phrases.length > 0 ? phrases : null;
 }
